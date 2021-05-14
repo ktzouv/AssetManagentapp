@@ -1,3 +1,14 @@
 Asset Management app that can help you to find a Windows Devices and get properties like Ram, Storage , Windows OS and more
 
-For more details and explanation of the code you can find in my blog https://askme4tech.com/how-scan-ip-addresses-range-and-get-important-details-powershell-gui-part-4
+Version 5 Updates
+
+In this updated included the following details
+
+1. OS Version
+2. Hardware Type (Vierual or Physical)
+3. Free RAM
+4. Free Disk Space in C
+5. Convert Totalphysicalmemory from bytes to GB
+6. Convert Disk_C from bytes to GB
+7. 
+For more details and explanation of the code you can find in my blog https://askme4tech.com/it-asset-management-powershell-script
