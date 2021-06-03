@@ -1,14 +1,12 @@
 Asset Management app that can help you to find a Windows Devices and get properties like Ram, Storage , Windows OS and more
 
-Version 5 Updates
+Version 6 Updates
 
-In this updated included the following details
+Replacement of the Windows Forms with WPF to take the following advantages:
 
-1. OS Version
-2. Hardware Type (Virtual or Physical)
-3. Free RAM
-4. Free Disk Space in C
-5. Convert Totalphysicalmemory from bytes to GB
-6. Convert Disk_C from bytes to GB
+1 .More flexible 
+2. XAML makes easier to create and edit the GUI
+3. Databinding allows you more clean separation and layout.
+4. Make user interface compatible with Windows and Web Applications.
 
 For more details and explanation of the code you can find in my blog https://askme4tech.com/it-asset-management-powershell-script
