@@ -1,6 +1,7 @@
-﻿#requires -Version 2.0 -Modules CimCmdlets
+﻿#requires -Version 3.0 -Modules CimCmdlets
 #Build the GUI with WPF
-[xml]$xaml = @"
+Add-Type -AssemblyName PresentationFramework
+[xml]$xaml = @'
 <Window
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -10,9 +11,9 @@
 <StackPanel x:Name="Main">
 
 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"  Margin="20,30,0,0">
-   <Label Content="First 3 Parts" Width="100"   />
-   <Label Content="Start IP" Width="100" />
-   <Label Content="End IP" Width="100" />
+   <Label Content="First 3 Octets '192.168.0'" Width="100"   />
+   <Label Content="Starting Address" Width="100" />
+   <Label Content="Ending Address" Width="100" />
 </StackPanel>
 
 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"  Margin="20,10,0,0">
@@ -54,31 +55,46 @@
 
 
 </Window>
-"@ 
+'@ 
+
 $reader = (New-Object -TypeName System.Xml.XmlNodeReader -ArgumentList $xaml)
 $Window = [Windows.Markup.XamlReader]::Load( $reader )
 $scan = $Window.FindName('scan')
 $datagrid = $Window.FindName('datagrid')
 $exportbutton = $Window.FindName('exportbutton')
-$startip = $Window.FindName('startip')
-$endip = $Window.FindName('endip')
-$first3part = $Window.FindName('first3part')
+$startip = [int]$Window.FindName('startip').text
+$endip = [int]$Window.FindName('endip').text
+$first3oct = [string]$Window.FindName('first3part').text
+
+function Export-CsvReport
+{
+  <#
+      .SYNOPSIS
+      Short Description
+  #>
+  param(
+    [Parameter(Position = 0)]
+    [Object]$datagrid
+  )
+  Add-Type -AssemblyName System.Windows.Forms
+  $OpenFileDialog = New-Object -TypeName System.Windows.Forms.SaveFileDialog
+  $OpenFileDialog.filter = 'CSV (*.csv)| *.csv'
+  $null = $OpenFileDialog.ShowDialog()
+}
+
 $scan.Add_Click({
-    $a = [int]$startip.text
-    $b = [int]$endip.text
-    $c = [string]$first3part.text
-    $cred = Get-Credential domain\user
-    $arr1 = @()
+    $cred = Get-Credential -UserName domain\user
+    $computerList = @()
     #Scan one by one all ip addresses to retrieve Computername and save it in object
-    #Before start to scan use Test-Connection to identify if PC/Server is online and check if Ws-Man is enable.
+    #Before start to scan use Test-Connection to identify if computer/Server is online and check if Ws-Man is enable.
     #In any case Catch the error and add to an object 
-    $a..$b |  ForEach-Object -Process {
-      $address = "$c.$_"
-      if (Test-Connection -Cn $address -Count 1 -Quiet )
+    $startip..$endip |  ForEach-Object -Process {
+      $address = ('{0}.{1}' -f $first3oct, $_)
+      if (Test-Connection -ComputerName $address -Count 1 -Quiet )
       {
         try
         {
-          if (Test-WSMan -cn $address -ErrorAction Stop)
+          if (Test-WSMan -ComputerName $address -ErrorAction Stop)
           {
             $o = New-Object  -TypeName psobject
             $null = $o |
@@ -105,12 +121,12 @@ $scan.Add_Click({
       }
       $arr1 += $o
     }
-    #Scan one by one all the results from the above array to get the information from the pc
+    #Scan one by one all the results from the above array to get the information from the computer
     #Use Invoke-Command for faster access and Get-Cim to retrieve details
     $result = @()
-    Foreach($pc in $arr1)
+    Foreach($computer in $computerList)
     {
-      $ip = $pc.ops
+      $ip = $computer.ops
       $Scriptblock = {
         $properties = @{
           IPAddress           = (Get-CimInstance -Class Win32_NetworkAdapterConfiguration -Filter IPEnabled=TRUE).IPAddress
@@ -129,7 +145,7 @@ $scan.Add_Click({
       }
       Try
       {
-        $result += Invoke-Command  -cn $ip -Credential $cred -ArgumentList $ip -ScriptBlock $Scriptblock -ErrorAction Stop | Select-Object -Property IPAddress, Computername, hardware, OS, OSVersion, CPU, @{
+        $result += Invoke-Command  -ComputerName $ip -Credential $cred -ArgumentList $ip -ScriptBlock $Scriptblock -ErrorAction Stop | Select-Object -Property IPAddress, Computername, hardware, OS, OSVersion, CPU, @{
           Name = 'TotalPhysicalMemory'
           e    = {
             $_.TotalPhysicalMemory /1GB -as [int]
@@ -154,16 +170,16 @@ $scan.Add_Click({
       catch
       {
         $properties = @{
-          IPAddress           = $pc.ip
-          Computername        = $pc.ops
-          hardware            = $pc.ops
-          OS                  = $pc.ops
-          OSVersion           = $pc.ops
-          CPU                 = $pc.ops
-          TotalPhysicalMemory = $pc.ops
-          FreePhysicalMemory  = $pc.ops
-          Disk_C              = $pc.ops
-          Free_Disk_C         = $pc.ops
+          IPAddress           = $computer.ip
+          Computername        = $computer.ops
+          hardware            = $computer.ops
+          OS                  = $computer.ops
+          OSVersion           = $computer.ops
+          CPU                 = $computer.ops
+          TotalPhysicalMemory = $computer.ops
+          FreePhysicalMemory  = $computer.ops
+          Disk_C              = $computer.ops
+          Free_Disk_C         = $computer.ops
         }
         $r = New-Object -TypeName psobject -Property $properties
         $result += $r
@@ -174,9 +190,7 @@ $scan.Add_Click({
 })
 #Export Csv file all the results in Datagridview in path that you will select
 $exportbutton.Add_Click({
-    $OpenFileDialog = New-Object -TypeName System.Windows.Forms.SaveFileDialog
-    $OpenFileDialog.filter = 'CSV (*.csv)| *.csv'
-    $null = $OpenFileDialog.ShowDialog()
-    $datagrid.Items | Export-Csv -Path $OpenFileDialog.FileName -NoTypeInformation
-})
+    Export-CsvReport -datagrid $datagrid
+  }
+)
 $Window.ShowDialog()
