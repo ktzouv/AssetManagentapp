@@ -103,8 +103,9 @@ $scan.Add_Click({
         $null = $o |
         Add-Member -MemberType noteproperty -Name ip -Value $address
       }
-      $arr1 += $o
+      $computerList += $o
     }
+    
     #Scan one by one all the results from the above array to get the information from the computer
     #Use Invoke-Command for faster access and Get-Cim to retrieve details
     $result = @()
@@ -132,23 +133,23 @@ $scan.Add_Click({
         $result += Invoke-Command  -ComputerName $ip -Credential $cred -ArgumentList $ip -ScriptBlock $Scriptblock -ErrorAction Stop | Select-Object -Property IPAddress, Computername, hardware, OS, OSVersion, CPU, @{
           Name = 'TotalPhysicalMemory'
           e    = {
-$_.TotalPhysicalMemory /1GB -as [int]
-}
+            $_.TotalPhysicalMemory /1GB -as [int]
+          }
         }, @{
           Name = 'FreePhysicalMemory'
           e    = {
-[math]::Round($_.FreePhysicalMemory /1MB , 2)
-}
+            [math]::Round($_.FreePhysicalMemory /1MB , 2)
+          }
         }, @{
           Name = 'Disk_C'
           e    = {
-$_.Disk_C /1GB -as [int]
-}
+            $_.Disk_C /1GB -as [int]
+          }
         }, @{
           Name = 'Free_Disk_C'
           e    = {
-$_.Free_Disk_C /1GB -as [int]
-}
+            $_.Free_Disk_C /1GB -as [int]
+          }
         } -ExcludeProperty PSComputername, RunspaceID
       }
       catch
