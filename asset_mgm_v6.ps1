@@ -66,22 +66,6 @@ $startip = [int]$Window.FindName('startip').text
 $endip = [int]$Window.FindName('endip').text
 $first3oct = [string]$Window.FindName('first3part').text
 
-function Export-CsvReport
-{
-  <#
-      .SYNOPSIS
-      Short Description
-  #>
-  param(
-    [Parameter(Position = 0)]
-    [Object]$datagrid
-  )
-  Add-Type -AssemblyName System.Windows.Forms
-  $OpenFileDialog = New-Object -TypeName System.Windows.Forms.SaveFileDialog
-  $OpenFileDialog.filter = 'CSV (*.csv)| *.csv'
-  $null = $OpenFileDialog.ShowDialog()
-}
-
 $scan.Add_Click({
     $cred = Get-Credential -UserName domain\user
     $computerList = @()
@@ -148,23 +132,23 @@ $scan.Add_Click({
         $result += Invoke-Command  -ComputerName $ip -Credential $cred -ArgumentList $ip -ScriptBlock $Scriptblock -ErrorAction Stop | Select-Object -Property IPAddress, Computername, hardware, OS, OSVersion, CPU, @{
           Name = 'TotalPhysicalMemory'
           e    = {
-            $_.TotalPhysicalMemory /1GB -as [int]
-          }
+$_.TotalPhysicalMemory /1GB -as [int]
+}
         }, @{
           Name = 'FreePhysicalMemory'
           e    = {
-            [math]::Round($_.FreePhysicalMemory /1MB , 2)
-          }
+[math]::Round($_.FreePhysicalMemory /1MB , 2)
+}
         }, @{
           Name = 'Disk_C'
           e    = {
-            $_.Disk_C /1GB -as [int]
-          }
+$_.Disk_C /1GB -as [int]
+}
         }, @{
           Name = 'Free_Disk_C'
           e    = {
-            $_.Free_Disk_C /1GB -as [int]
-          }
+$_.Free_Disk_C /1GB -as [int]
+}
         } -ExcludeProperty PSComputername, RunspaceID
       }
       catch
@@ -190,7 +174,10 @@ $scan.Add_Click({
 })
 #Export Csv file all the results in Datagridview in path that you will select
 $exportbutton.Add_Click({
-    Export-CsvReport -datagrid $datagrid
+    $OpenFileDialog = New-Object -TypeName System.Windows.Forms.SaveFileDialog
+    $OpenFileDialog.filter = 'CSV (*.csv)| *.csv'
+    $null = $OpenFileDialog.ShowDialog()
+    $datagrid.Items | Export-Csv -Path $OpenFileDialog.FileName -NoTypeInformation
   }
 )
 $Window.ShowDialog()
