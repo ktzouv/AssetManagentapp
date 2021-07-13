@@ -1,7 +1,6 @@
 ﻿#requires -Version 3.0 -Modules CimCmdlets 
 ##-RunAsAdministrator
 
-$cred = Get-Credential -UserName domain\user
 
 Add-Type -AssemblyName PresentationFramework
 [xml]$xaml = @'
@@ -73,8 +72,8 @@ $first3oct = [string]$Window.FindName('first3part').text
 function Script:Create-IpList
 {
   <#
-    .SYNOPSIS
-    Creates a list of IP addresses from the form.
+      .SYNOPSIS
+      Creates a list of IP addresses from the form input.
   #>
 
 
@@ -84,11 +83,11 @@ function Script:Create-IpList
     [Parameter(Mandatory = $true, Position = 0)]
     [String]$first3oct,
     
-    [Parameter(Mandatory = $true, Position = 1, HelpMessage = 'Please add a help message here')]
+    [Parameter(Mandatory = $true, Position = 1, HelpMessage = 'First address in the range')]
     [int]
     $startip,
     
-    [Parameter(Mandatory = $true, Position = 2, HelpMessage = 'Please add a help message here')]
+    [Parameter(Mandatory = $true, Position = 2, HelpMessage = 'Last address in the range')]
     [int]
     $endip
   )
@@ -101,7 +100,7 @@ function Script:Create-IpList
   return $ipList
 }
 
-workflow Script:Start-IpScan
+function Script:Start-IpScan
 {
   [CmdletBinding()]
   param
@@ -110,8 +109,7 @@ workflow Script:Start-IpScan
     [String[]]$ipList
   )
   
-    
-  foreach -parallel ($address in $ipList)
+  foreach ($address in $ipList)
   {
     if (Test-Connection -ComputerName $address -Count 1 -Quiet )
     {
@@ -150,11 +148,11 @@ workflow Script:Start-IpScan
 function Script:Start-RetrieveCimData
 {
   <#
-    .SYNOPSIS
-    Retrieve data from machines
+      .SYNOPSIS
+      Retrieve data from machines
 
-    .NOTES
-    This should be turned into a workflow, but that cannot be done until the "$properties" variable is converted to a different storage object.
+      .NOTES
+      This should be turned into a workflow, but that cannot be done until the "$properties" variable is converted to a different storage object.
   #>
 
 
@@ -187,23 +185,23 @@ function Script:Start-RetrieveCimData
     Try
     {
       $result += Invoke-Command  -ComputerName $ip -Credential $cred -ArgumentList $ip -ScriptBlock $Scriptblock -ErrorAction Stop | Select-Object -Property IPAddress, Computername, hardware, OS, OSVersion, CPU, @{
-        Name = 'TotalPhysicalMemory'
-        e    = {
+        Name       = 'TotalPhysicalMemory'
+        Expression = {
           $_.TotalPhysicalMemory /1GB -as [int]
         }
       }, @{
         Name = 'FreePhysicalMemory'
-        e    = {
+        Expression = {
           [math]::Round($_.FreePhysicalMemory /1MB , 2)
         }
       }, @{
         Name = 'Disk_C'
-        e    = {
+        Expression = {
           $_.Disk_C /1GB -as [int]
         }
       }, @{
         Name = 'Free_Disk_C'
-        e    = {
+        Expression = {
           $_.Free_Disk_C /1GB -as [int]
         }
       } -ExcludeProperty PSComputername, RunspaceID
