@@ -85,8 +85,8 @@
     function Test-Ipaddress # 
     {
       <#
-        .SYNOPSIS
-        Checks to see if it is a v4 or v6 ip address.  Mostly put in as a future feature.
+          .SYNOPSIS
+          Checks to see if it is a v4 or v6 ip address.  Mostly put in as a future feature.
       #>
 
 
@@ -106,9 +106,9 @@
     function Resolve-IpRange
     {
       <#
-        .SYNOPSIS
-        Creates the upper and lower value of the last octet based on the whole ip address that was inputted.
-        It makes sure that you are "pinging" upward, so if you put in 10.0.0.100 then 10.0.0.2 it will make sure that the start address is "2"
+          .SYNOPSIS
+          Creates the upper and lower value of the last octet based on the whole ip address that was inputted.
+          It makes sure that you are "pinging" upward, so if you put in 10.0.0.100 then 10.0.0.2 it will make sure that the start address is "2"
       #>
 
 
@@ -142,14 +142,15 @@
       )
       foreach -parallel ($computer in $Computers) 
       {
-        Test-Connection -ComputerName $computer -Count 1 -ErrorAction SilentlyContinue
+        #Test-Connection -ComputerName $computer -Count 1 -ErrorAction SilentlyContinue
+      Test-NetConnection -ComputerName $computer -InformationLevel Quiet -ErrorAction SilentlyContinue
       }
     }
     function Ping-Results
     {
       <#
-        .SYNOPSIS
-        Does something with the results of the Test-Connection and Test-NetConnection.  Does not get touched by the workflow.
+          .SYNOPSIS
+          Does something with the results of the Test-Connection and Test-NetConnection.  Does not get touched by the workflow.
       #>
 
       param(
@@ -217,6 +218,9 @@ $NicServiceName = (Get-WmiObject -Class win32_networkadapter -Filter 'netconnect
 $NIC = Get-WmiObject -Class Win32_NetworkAdapterConfiguration |
 Where-Object -Property ServiceName -EQ -Value $NicServiceName |
 Select-Object -Property *  
-Ping-IpRange -FirstIpAddress $($NIC.DefaultIPGateway[0]) -LastIpAddress $($NIC.IPAddress[0]) -Verbose -useConnection
-Ping-IpRange -FirstIpAddress $($NIC.DefaultIPGateway[0]) -LastIpAddress $($NIC.IPAddress[0]) -Verbose -useNetconnetion
-Ping-IpRange -FirstIpAddress $($NIC.DefaultIPGateway[0]) -LastIpAddress $($NIC.IPAddress[0]) -Verbose -useWorkflow
+
+
+Measure-Command -Expression { Ping-IpRange -FirstIpAddress $($NIC.DefaultIPGateway[0]) -LastIpAddress $($NIC.IPAddress[0]) -useConnection} | Select-Object -Property  @{e={'{0} Test-Connection' -f $_.TotalSeconds}}
+Measure-Command -Expression { Ping-IpRange -FirstIpAddress $($NIC.DefaultIPGateway[0]) -LastIpAddress $($NIC.IPAddress[0]) -useNetconnetion} | Select-Object -Property @{e={'{0} Test-NetConnection' -f $_.TotalSeconds}}
+Measure-Command -Expression { Ping-IpRange -FirstIpAddress $($NIC.DefaultIPGateway[0]) -LastIpAddress $($NIC.IPAddress[0]) -useWorkflow} | Select-Object -Property @{e={'{0} Workflow-NetConnection' -f $_.TotalSeconds}}
+
